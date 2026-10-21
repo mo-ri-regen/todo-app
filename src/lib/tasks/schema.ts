@@ -46,9 +46,20 @@ export type TaskInput = z.infer<typeof taskInputSchema>;
 
 export const taskIdSchema = z.uuid();
 
+export const SEARCH_MAX = 100;
+
+// 検索キーワード。おかしな値（配列・長すぎる文字列）は「検索なし」として扱う
+export const searchQuerySchema = z
+  .string()
+  .trim()
+  .max(SEARCH_MAX)
+  .catch("");
+
 export type Task = TaskInput & {
   id: string;
   completedAt: Date | null;
+  // ゴミ箱に入れた日時（入っていなければ null）
+  deletedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 };

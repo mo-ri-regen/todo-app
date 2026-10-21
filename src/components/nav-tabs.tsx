@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 const TABS = [
   { href: "/", label: "やること" },
   { href: "/completed", label: "完了済み" },
+  { href: "/trash", label: "ゴミ箱" },
 ] as const;
 
 // 今のページ（usePathname）は URL によって変わるため、Suspense の中で読む

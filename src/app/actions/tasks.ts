@@ -12,7 +12,14 @@ import {
   type Priority,
   type TaskInput,
 } from "@/lib/tasks/schema";
-import { createTask, setTaskCompleted, updateTask } from "@/lib/tasks/store";
+import {
+  createTask,
+  deleteTaskPermanently,
+  moveTaskToTrash,
+  restoreTask,
+  setTaskCompleted,
+  updateTask,
+} from "@/lib/tasks/store";
 
 export type TaskFormState =
   | {
@@ -91,5 +98,33 @@ export async function setTaskCompletedAction(id: string, completed: boolean) {
   if (!parsedId.success || typeof completed !== "boolean") return;
 
   await setTaskCompleted(parsedId.data, completed);
+  refresh();
+}
+
+export async function moveTaskToTrashAction(id: string) {
+  await verifySession();
+
+  const parsedId = taskIdSchema.safeParse(id);
+  const moved = parsedId.success ? await moveTaskToTrash(parsedId.data) : null;
+  redirect(moved?.completedAt ? "/completed" : "/");
+}
+
+export async function restoreTaskAction(id: string) {
+  await verifySession();
+
+  const parsedId = taskIdSchema.safeParse(id);
+  if (!parsedId.success) return;
+
+  await restoreTask(parsedId.data);
+  refresh();
+}
+
+export async function deleteTaskPermanentlyAction(id: string) {
+  await verifySession();
+
+  const parsedId = taskIdSchema.safeParse(id);
+  if (!parsedId.success) return;
+
+  await deleteTaskPermanently(parsedId.data);
   refresh();
 }
