@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { EmptyState } from "@/components/empty-state";
 import { CompleteCheckbox } from "@/components/tasks/complete-checkbox";
 import { Badge } from "@/components/ui/badge";
 import { formatDueDate } from "@/lib/tasks/format";
@@ -13,7 +14,7 @@ const PRIORITY_VARIANTS = {
 
 export function TaskList({ tasks, emptyMessage }: { tasks: Task[]; emptyMessage: string }) {
   if (tasks.length === 0) {
-    return <p className="py-8 text-center text-sm text-muted-foreground">{emptyMessage}</p>;
+    return <EmptyState>{emptyMessage}</EmptyState>;
   }
 
   return (

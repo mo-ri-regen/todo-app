@@ -3,7 +3,7 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { redirect } from "next/navigation";
 
-import { createSession, deleteSession } from "@/lib/session";
+import { createSession, deleteSession, hasSessionSecret } from "@/lib/session";
 
 export type LoginState = { error?: string } | undefined;
 
@@ -19,8 +19,7 @@ export async function login(
   formData: FormData,
 ): Promise<LoginState> {
   const expected = process.env.APP_PASSWORD;
-  const secret = process.env.SESSION_SECRET;
-  if (!expected || !secret || secret.length < 32) {
+  if (!expected || !hasSessionSecret()) {
     return { error: "サーバーのログイン設定が足りません。" };
   }
 

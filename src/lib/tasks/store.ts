@@ -73,48 +73,42 @@ export async function createTask(input: TaskInput) {
   return task;
 }
 
+// ゴミ箱に入っているタスクだけを返す
+function getTrashedTask(id: string) {
+  const task = tasks.get(id);
+  return task && task.deletedAt !== null ? task : null;
+}
+
+// タスクの一部を書き換えて保存する（updatedAt も更新する）
+function saveChanges(task: Task, changes: (now: Date) => Partial<Task>) {
+  const now = new Date();
+  const updated: Task = { ...task, ...changes(now), updatedAt: now };
+  tasks.set(task.id, updated);
+  return updated;
+}
+
 export async function updateTask(id: string, input: TaskInput) {
   const task = await getTask(id);
-  if (!task) return null;
-  const updated: Task = { ...task, ...input, updatedAt: new Date() };
-  tasks.set(id, updated);
-  return updated;
+  return task && saveChanges(task, () => input);
 }
 
 export async function setTaskCompleted(id: string, completed: boolean) {
   const task = await getTask(id);
-  if (!task) return null;
-  const now = new Date();
-  const updated: Task = {
-    ...task,
-    completedAt: completed ? now : null,
-    updatedAt: now,
-  };
-  tasks.set(id, updated);
-  return updated;
+  return task && saveChanges(task, (now) => ({ completedAt: completed ? now : null }));
 }
 
 export async function moveTaskToTrash(id: string) {
   const task = await getTask(id);
-  if (!task) return null;
-  const now = new Date();
-  const updated: Task = { ...task, deletedAt: now, updatedAt: now };
-  tasks.set(id, updated);
-  return updated;
+  return task && saveChanges(task, (now) => ({ deletedAt: now }));
 }
 
 // 完了の状態はそのまま残すので、元の場所（やること／完了済み）に戻る
 export async function restoreTask(id: string) {
-  const task = tasks.get(id);
-  if (!task || task.deletedAt === null) return null;
-  const updated: Task = { ...task, deletedAt: null, updatedAt: new Date() };
-  tasks.set(id, updated);
-  return updated;
+  const task = getTrashedTask(id);
+  return task && saveChanges(task, () => ({ deletedAt: null }));
 }
 
 // 完全に削除できるのは、ゴミ箱に入っているタスクだけ
 export async function deleteTaskPermanently(id: string) {
-  const task = tasks.get(id);
-  if (!task || task.deletedAt === null) return false;
-  return tasks.delete(id);
+  return getTrashedTask(id) ? tasks.delete(id) : false;
 }
