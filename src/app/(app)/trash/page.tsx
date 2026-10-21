@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
+import { EmptyState } from "@/components/empty-state";
 import { TrashItemActions } from "@/components/tasks/trash-item-actions";
 import { verifySession } from "@/lib/dal";
 import { listTrashedTasks } from "@/lib/tasks/store";
@@ -24,7 +25,7 @@ async function TrashedTasks() {
   const tasks = await listTrashedTasks();
 
   if (tasks.length === 0) {
-    return <p className="py-8 text-center text-sm text-muted-foreground">ゴミ箱は空です</p>;
+    return <EmptyState>ゴミ箱は空です</EmptyState>;
   }
 
   return (

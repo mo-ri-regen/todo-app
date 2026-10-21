@@ -10,12 +10,18 @@ type SessionPayload = {
   sub: "owner";
 };
 
+const SECRET_MIN_LENGTH = 32;
+
+// SESSION_SECRET が十分な長さで設定されているか
+export function hasSessionSecret() {
+  return (process.env.SESSION_SECRET?.length ?? 0) >= SECRET_MIN_LENGTH;
+}
+
 function getSecretKey() {
-  const secret = process.env.SESSION_SECRET;
-  if (!secret || secret.length < 32) {
-    throw new Error("SESSION_SECRET must be set to at least 32 characters.");
+  if (!hasSessionSecret()) {
+    throw new Error(`SESSION_SECRET must be set to at least ${SECRET_MIN_LENGTH} characters.`);
   }
-  return new TextEncoder().encode(secret);
+  return new TextEncoder().encode(process.env.SESSION_SECRET);
 }
 
 async function encrypt(payload: SessionPayload) {

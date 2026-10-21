@@ -1,9 +1,8 @@
 import { Suspense } from "react";
 
 import { createTaskAction } from "@/app/actions/tasks";
-import { SearchForm } from "@/components/tasks/search-form";
+import { SearchableTaskList } from "@/components/tasks/searchable-task-list";
 import { TaskForm } from "@/components/tasks/task-form";
-import { TaskList } from "@/components/tasks/task-list";
 import { verifySession } from "@/lib/dal";
 import { searchQuerySchema } from "@/lib/tasks/schema";
 import { listActiveTasks } from "@/lib/tasks/store";
@@ -29,12 +28,11 @@ async function ActiveTasks({ query }: { query: string }) {
   await verifySession();
   const tasks = await listActiveTasks(query);
   return (
-    <section className="flex flex-col gap-3">
-      <SearchForm action="/" query={query} />
-      <TaskList
-        tasks={tasks}
-        emptyMessage={query ? "見つかりませんでした" : "やることはありません"}
-      />
-    </section>
+    <SearchableTaskList
+      path="/"
+      query={query}
+      tasks={tasks}
+      emptyMessage="やることはありません"
+    />
   );
 }

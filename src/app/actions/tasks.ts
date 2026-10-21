@@ -10,6 +10,7 @@ import {
   taskIdSchema,
   taskInputSchema,
   type Priority,
+  type Task,
   type TaskInput,
 } from "@/lib/tasks/schema";
 import {
@@ -29,6 +30,18 @@ export type TaskFormState =
       values?: TaskInput;
     }
   | undefined;
+
+// ログインを確認してから、タスク ID の形をチェックする（おかしな ID なら null）
+async function authorizeTaskId(id: string) {
+  await verifySession();
+  const parsed = taskIdSchema.safeParse(id);
+  return parsed.success ? parsed.data : null;
+}
+
+// タスクが入っている一覧の URL（完了済みなら「完了済み」）
+function listPathOf(task: Pick<Task, "completedAt"> | null) {
+  return task?.completedAt ? "/completed" : "/";
+}
 
 function readTaskForm(formData: FormData) {
   const text = (key: string) => {
@@ -73,58 +86,49 @@ export async function updateTaskAction(
   _state: TaskFormState,
   formData: FormData,
 ): Promise<TaskFormState> {
-  await verifySession();
-
-  const parsedId = taskIdSchema.safeParse(id);
-  const { parsed, values } = readTaskForm(formData);
-  if (!parsedId.success) {
+  const taskId = await authorizeTaskId(id);
+  if (!taskId) {
     return { message: "タスクが見つかりません。" };
   }
+
+  const { parsed, values } = readTaskForm(formData);
   if (!parsed.success) {
     return { errors: z.flattenError(parsed.error).fieldErrors, values };
   }
 
-  const updated = await updateTask(parsedId.data, parsed.data);
+  const updated = await updateTask(taskId, parsed.data);
   if (!updated) {
     return { message: "タスクが見つかりません。" };
   }
-  redirect(updated.completedAt ? "/completed" : "/");
+  redirect(listPathOf(updated));
 }
 
 export async function setTaskCompletedAction(id: string, completed: boolean) {
-  await verifySession();
+  const taskId = await authorizeTaskId(id);
+  if (!taskId || typeof completed !== "boolean") return;
 
-  const parsedId = taskIdSchema.safeParse(id);
-  if (!parsedId.success || typeof completed !== "boolean") return;
-
-  await setTaskCompleted(parsedId.data, completed);
+  await setTaskCompleted(taskId, completed);
   refresh();
 }
 
 export async function moveTaskToTrashAction(id: string) {
-  await verifySession();
-
-  const parsedId = taskIdSchema.safeParse(id);
-  const moved = parsedId.success ? await moveTaskToTrash(parsedId.data) : null;
-  redirect(moved?.completedAt ? "/completed" : "/");
+  const taskId = await authorizeTaskId(id);
+  const moved = taskId ? await moveTaskToTrash(taskId) : null;
+  redirect(listPathOf(moved));
 }
 
 export async function restoreTaskAction(id: string) {
-  await verifySession();
+  const taskId = await authorizeTaskId(id);
+  if (!taskId) return;
 
-  const parsedId = taskIdSchema.safeParse(id);
-  if (!parsedId.success) return;
-
-  await restoreTask(parsedId.data);
+  await restoreTask(taskId);
   refresh();
 }
 
 export async function deleteTaskPermanentlyAction(id: string) {
-  await verifySession();
+  const taskId = await authorizeTaskId(id);
+  if (!taskId) return;
 
-  const parsedId = taskIdSchema.safeParse(id);
-  if (!parsedId.success) return;
-
-  await deleteTaskPermanently(parsedId.data);
+  await deleteTaskPermanently(taskId);
   refresh();
 }
