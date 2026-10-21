@@ -5,12 +5,12 @@ import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { verifySession } from "@/lib/dal";
+import { listPathOf } from "@/lib/tasks/paths";
 import {
   PRIORITIES,
   taskIdSchema,
   taskInputSchema,
   type Priority,
-  type Task,
   type TaskInput,
 } from "@/lib/tasks/schema";
 import {
@@ -36,11 +36,6 @@ async function authorizeTaskId(id: string) {
   await verifySession();
   const parsed = taskIdSchema.safeParse(id);
   return parsed.success ? parsed.data : null;
-}
-
-// タスクが入っている一覧の URL（完了済みなら「完了済み」）
-function listPathOf(task: Pick<Task, "completedAt"> | null) {
-  return task?.completedAt ? "/completed" : "/";
 }
 
 function readTaskForm(formData: FormData) {
