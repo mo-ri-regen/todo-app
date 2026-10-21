@@ -22,19 +22,41 @@ function compareActive(a: Task, b: Task) {
   return a.createdAt.getTime() - b.createdAt.getTime();
 }
 
-export async function listActiveTasks() {
-  return [...tasks.values()].filter((t) => t.completedAt === null).sort(compareActive);
+// 全角・半角や大文字・小文字の違いを無視して比べる
+const normalize = (text: string) => text.normalize("NFKC").toLowerCase();
+
+function matches(task: Task, query: string) {
+  if (!query) return true;
+  const q = normalize(query);
+  return normalize(task.title).includes(q) || normalize(task.memo).includes(q);
+}
+
+const notTrashed = () => [...tasks.values()].filter((t) => t.deletedAt === null);
+
+export async function listActiveTasks(query = "") {
+  return notTrashed()
+    .filter((t) => t.completedAt === null && matches(t, query))
+    .sort(compareActive);
 }
 
 // 完了した日時の新しい順
-export async function listCompletedTasks() {
-  return [...tasks.values()]
-    .filter((t) => t.completedAt !== null)
+export async function listCompletedTasks(query = "") {
+  return notTrashed()
+    .filter((t) => t.completedAt !== null && matches(t, query))
     .sort((a, b) => b.completedAt!.getTime() - a.completedAt!.getTime());
 }
 
+// ゴミ箱に入れた日時の新しい順
+export async function listTrashedTasks() {
+  return [...tasks.values()]
+    .filter((t) => t.deletedAt !== null)
+    .sort((a, b) => b.deletedAt!.getTime() - a.deletedAt!.getTime());
+}
+
+// ゴミ箱に入っているタスクは返さない
 export async function getTask(id: string) {
-  return tasks.get(id) ?? null;
+  const task = tasks.get(id);
+  return task && task.deletedAt === null ? task : null;
 }
 
 export async function createTask(input: TaskInput) {
@@ -43,6 +65,7 @@ export async function createTask(input: TaskInput) {
     ...input,
     id: randomUUID(),
     completedAt: null,
+    deletedAt: null,
     createdAt: now,
     updatedAt: now,
   };
@@ -51,7 +74,7 @@ export async function createTask(input: TaskInput) {
 }
 
 export async function updateTask(id: string, input: TaskInput) {
-  const task = tasks.get(id);
+  const task = await getTask(id);
   if (!task) return null;
   const updated: Task = { ...task, ...input, updatedAt: new Date() };
   tasks.set(id, updated);
@@ -59,7 +82,7 @@ export async function updateTask(id: string, input: TaskInput) {
 }
 
 export async function setTaskCompleted(id: string, completed: boolean) {
-  const task = tasks.get(id);
+  const task = await getTask(id);
   if (!task) return null;
   const now = new Date();
   const updated: Task = {
@@ -69,4 +92,29 @@ export async function setTaskCompleted(id: string, completed: boolean) {
   };
   tasks.set(id, updated);
   return updated;
+}
+
+export async function moveTaskToTrash(id: string) {
+  const task = await getTask(id);
+  if (!task) return null;
+  const now = new Date();
+  const updated: Task = { ...task, deletedAt: now, updatedAt: now };
+  tasks.set(id, updated);
+  return updated;
+}
+
+// 完了の状態はそのまま残すので、元の場所（やること／完了済み）に戻る
+export async function restoreTask(id: string) {
+  const task = tasks.get(id);
+  if (!task || task.deletedAt === null) return null;
+  const updated: Task = { ...task, deletedAt: null, updatedAt: new Date() };
+  tasks.set(id, updated);
+  return updated;
+}
+
+// 完全に削除できるのは、ゴミ箱に入っているタスクだけ
+export async function deleteTaskPermanently(id: string) {
+  const task = tasks.get(id);
+  if (!task || task.deletedAt === null) return false;
+  return tasks.delete(id);
 }
