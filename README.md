@@ -2,8 +2,6 @@
 
 自分用の todo リスト（Web アプリ）。仕様は [SPEC.md](SPEC.md)、開発計画は [PLAN.md](PLAN.md) を参照。
 
-> **注意**：タスクはサーバーのメモリに保存しているため、**サーバーを再起動すると消えます**。
-
 ## 使用している技術
 
 | 分類 | 技術 | バージョン |
@@ -16,6 +14,8 @@
 | UI 部品 | [shadcn/ui](https://ui.shadcn.com/)（[Base UI](https://base-ui.com/) ベース） | 4.22 |
 | 入力チェック | [Zod](https://zod.dev/) | 4.6 |
 | ログイン状態の管理 | [jose](https://github.com/panva/jose)（署名付き Cookie） | 6.2 |
+| DB | [Neon](https://neon.com/)（PostgreSQL） | PostgreSQL 18 |
+| ORM | [Drizzle ORM](https://orm.drizzle.team/)・drizzle-kit | 0.45・0.31 |
 | コードチェック | ESLint | 9 |
 
 ## ローカルでのアプリ起動方法
@@ -46,7 +46,7 @@ cp .env.example .env.local
 |---|---|
 | `APP_PASSWORD` | ログイン用のパスワード。ローカル開発中は短いものでよい |
 | `SESSION_SECRET` | ログイン状態（Cookie）の署名に使う、32 文字以上のランダムな文字列 |
-| `DATABASE_URL` | 今は使っていないので、空のままでよい |
+| `DATABASE_URL` | Neon の接続先（Neon の画面の「Connect」でコピーした `postgresql://` で始まる文字列）。パスワードを含むので、人に見せない |
 
 `SESSION_SECRET` は、次のコマンドで作れます。
 
@@ -54,7 +54,15 @@ cp .env.example .env.local
 openssl rand -base64 32
 ```
 
-### 4. 開発サーバーを起動する
+### 4. DB にテーブルを作る
+
+`DATABASE_URL` の DB に、テーブルを作ります（最初の1回と、テーブルの定義を変えたときに実行します）。
+
+```bash
+npm run db:migrate
+```
+
+### 5. 開発サーバーを起動する
 
 ```bash
 npm run dev
@@ -69,3 +77,5 @@ npm run dev
 | `npm run build` | 本番用にビルドする |
 | `npm run start` | ビルドしたアプリを起動する（先に `npm run build` が必要） |
 | `npm run lint` | ESLint でコードをチェックする |
+| `npm run db:generate` | `src/lib/db/schema.ts` の変更から、テーブルを変える SQL（`drizzle/`）を作る |
+| `npm run db:migrate` | `drizzle/` の SQL を DB に反映する |
